@@ -4,6 +4,7 @@ from typing import Any, Union
 import torch.distributed as dist
 from pytorch_lightning.plugins import DDPStrategy
 import random
+import os  # Thêm import os
 
 import torch
 import torch.nn as nn
@@ -19,6 +20,8 @@ from module.feature import Mel_Spectrogram
 from module.loader import SPK_datamodule
 import score as score
 from loss import softmax, amsoftmax
+
+from module.augment import augment_csv_dataset
 
 class Task(LightningModule):
     def __init__(
@@ -205,6 +208,12 @@ class Task(LightningModule):
 
         parser.add_argument('--eval', action='store_true')
         parser.add_argument('--aug', action='store_true')
+        
+        # Thêm tham số cho data augmentation
+        parser.add_argument('--noise_csv_path', type=str, default=None, help='Path to noise CSV file (MUSAN)')
+        parser.add_argument('--augment_percentage', type=float, default=0.6, help='Percentage of data to augment (0.0-1.0)')
+        parser.add_argument('--enable_aug', action='store_true', help='Enable data augmentation before training')
+
         return parser
 
 
@@ -228,6 +237,26 @@ def cli_main():
     checkpoint_callback = ModelCheckpoint(monitor='cosine_eer', save_top_k=100,
            filename="{epoch}_{cosine_eer:.2f}", dirpath=args.save_dir)
     lr_monitor = LearningRateMonitor(logging_interval='step')
+
+    # Augment dữ liệu trước khi huấn luyện nếu được yêu cầu
+    if args.enable_aug and args.noise_csv_path:
+        print("\n=== Augmenting dataset before training ===")
+        augmented_train_csv = os.path.join(os.path.dirname(args.train_csv_path), "augmented_train.csv")
+        
+        success = augment_csv_dataset(
+            args.train_csv_path,
+            augmented_train_csv,
+            augment_percentage=args.augment_percentage,
+            second=args.second,  # Sửa từ seconds thành second để khớp với tham số CLI
+            noise_csv_path=args.noise_csv_path
+        )
+        
+        if success:
+            # Sử dụng file CSV đã augment cho việc huấn luyện
+            print(f"Using augmented dataset: {augmented_train_csv}")
+            args.train_csv_path = augmented_train_csv
+        else:
+            print("Failed to augment dataset, using original dataset")
 
     # init default datamodule
     print("data augmentation {}".format(args.aug))
@@ -254,4 +283,3 @@ def cli_main():
 
 if __name__ == "__main__":
     cli_main()
-

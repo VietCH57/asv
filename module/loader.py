@@ -6,6 +6,7 @@ import torch
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import DataLoader
 
+# Commented out for compatibility
 # from pl_bolts.datasets import UnlabeledImagenet
 from pl_bolts.utils.warnings import warn_missing_pkg
 
@@ -26,6 +27,7 @@ class SPK_datamodule(LightningDataModule):
         drop_last: bool = True,
         pairs: bool = True,
         aug: bool = False,
+        aug_config: dict = None,
         semi: bool = False,
         *args: Any,
         **kwargs: Any,
@@ -40,13 +42,26 @@ class SPK_datamodule(LightningDataModule):
         self.trial_path = trial_path
         self.pairs = pairs
         self.aug = aug
+        self.aug_config = aug_config
         print("second is {:.2f}".format(second))
 
     def train_dataloader(self) -> DataLoader:
         if self.unlabel_csv_path is None:
-            train_dataset = Train_Dataset(self.train_csv_path, self.second, self.pairs, self.aug)
+            # Chúng ta không cần sử dụng aug và aug_config nữa 
+            # vì augmentation đã được thực hiện trước đó
+            train_dataset = Train_Dataset(
+                self.train_csv_path, 
+                self.second, 
+                self.pairs
+            )
         else:
-            train_dataset = Semi_Dataset(self.train_csv_path, self.unlabel_csv_path, self.second, self.pairs, self.aug)
+            train_dataset = Semi_Dataset(
+                self.train_csv_path, 
+                self.unlabel_csv_path, 
+                self.second, 
+                self.pairs
+            )
+            
         loader = torch.utils.data.DataLoader(
                 train_dataset,
                 shuffle=True,
@@ -73,5 +88,3 @@ class SPK_datamodule(LightningDataModule):
 
     def test_dataloader(self) -> DataLoader:
         return self.val_dataloader()
-
-
