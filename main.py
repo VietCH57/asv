@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from copy import deepcopy
 from typing import Any, Union
 import torch.distributed as dist
-from pytorch_lightning.plugins import DDPPlugin
+from pytorch_lightning.plugins import DDPStrategy
 import random
 
 import torch
@@ -236,7 +236,7 @@ def cli_main():
     AVAIL_GPUS = torch.cuda.device_count()
     trainer = Trainer(
             max_epochs=args.max_epochs,
-            plugins=DDPPlugin(find_unused_parameters=False),
+            strategy=DDPStrategy(find_unused_parameters=False),
             gpus=AVAIL_GPUS,
             num_sanity_val_steps=-1,
             sync_batchnorm=True,
