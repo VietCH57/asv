@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from copy import deepcopy
 from typing import Any, Union
 import torch.distributed as dist
-from pytorch_lightning.plugins import DDPStrategy
+from pytorch_lightning.strategies import DDPStrategy
 import random
 import os  # Thêm import os
 
